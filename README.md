@@ -1,4 +1,4 @@
-# obj2rgeom
+# obj2rgeom by Modera
 
 `obj2rgeom` is a small console tool in this folder that converts `.obj` files to `.rgeom`.
 
