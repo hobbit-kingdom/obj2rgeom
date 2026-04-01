@@ -1,0 +1,36 @@
+# Project: lw_xbmp
+# Makefile created by Dev-C++ 5.11
+
+CPP      = g++.exe
+CC       = gcc.exe
+WINDRES  = windres.exe
+OBJ      = lw_xbmp.o dxt_decompress.o xbmp.o
+LINKOBJ  = lw_xbmp.o dxt_decompress.o xbmp.o
+LIBS     = -L"F:/Dev-Cpp/i686-4.9.4-release-win32-dwarf-rt_v5-rev0/lib" -L"F:/Dev-Cpp/i686-4.9.4-release-win32-dwarf-rt_v5-rev0/i686-w64-mingw32/lib" -static-libgcc -static-libstdc++
+INCS     = -I"F:/Dev-Cpp/i686-4.9.4-release-win32-dwarf-rt_v5-rev0/include" -I"F:/Dev-Cpp/i686-4.9.4-release-win32-dwarf-rt_v5-rev0/i686-w64-mingw32/include" -I"F:/Dev-Cpp/i686-4.9.4-release-win32-dwarf-rt_v5-rev0/lib/gcc/i686-w64-mingw32/4.9.4/include" -I"F:/Dev-Cpp/projects/lw_plugin/lw/ver-8.0/include"
+CXXINCS  = -I"F:/Dev-Cpp/i686-4.9.4-release-win32-dwarf-rt_v5-rev0/include" -I"F:/Dev-Cpp/i686-4.9.4-release-win32-dwarf-rt_v5-rev0/i686-w64-mingw32/include" -I"F:/Dev-Cpp/i686-4.9.4-release-win32-dwarf-rt_v5-rev0/lib/gcc/i686-w64-mingw32/4.9.4/include" -I"F:/Dev-Cpp/projects/lw_plugin/lw/ver-8.0/include"
+BIN      = lw_xbmp.p
+CXXFLAGS = $(CXXINCS) -DBUILDING_DLL=1
+CFLAGS   = $(INCS) -DBUILDING_DLL=1
+RM       = rm.exe -f
+DEF      = liblw_xbmp.def
+STATIC   = liblw_xbmp.a
+
+.PHONY: all all-before all-after clean clean-custom
+
+all: all-before $(BIN) all-after
+
+clean: clean-custom
+	${RM} $(OBJ) $(BIN) $(DEF) $(STATIC)
+
+$(BIN): $(LINKOBJ)
+	$(CC) -shared $(LINKOBJ) -o $(BIN) $(LIBS) -Wl,--output-def,$(DEF),--out-implib,$(STATIC),--add-stdcall-alias
+
+lw_xbmp.o: lw_xbmp.c
+	$(CC) -c lw_xbmp.c -o lw_xbmp.o $(CFLAGS)
+
+dxt_decompress.o: dxt_decompress.c
+	$(CC) -c dxt_decompress.c -o dxt_decompress.o $(CFLAGS)
+
+xbmp.o: xbmp.c
+	$(CC) -c xbmp.c -o xbmp.o $(CFLAGS)

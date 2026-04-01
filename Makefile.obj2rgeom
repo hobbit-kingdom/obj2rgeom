@@ -1,0 +1,34 @@
+CPP      = g++.exe
+CC       = gcc.exe
+CPPFLAGS = -std=gnu++17 -O2 -I. -Invtristrip/include
+CFLAGS   = -std=gnu11 -O2 -I.
+BIN      = obj2rgeom.exe
+OBJ      = obj2rgeom.o export_rgeom_cli.o utils_cli.o geombuf_cli.o nvtristrip_cli.o nvtristrip_objects_cli.o
+
+.PHONY: all clean
+
+all: $(BIN)
+
+clean:
+	del /q $(OBJ) $(BIN) 2>nul || exit 0
+
+$(BIN): $(OBJ)
+	$(CPP) $(OBJ) -o $(BIN) -static-libgcc -static-libstdc++ -lcomdlg32
+
+obj2rgeom.o: obj2rgeom.cpp
+	$(CPP) $(CPPFLAGS) -c obj2rgeom.cpp -o obj2rgeom.o
+
+export_rgeom_cli.o: export_rgeom.cpp
+	$(CPP) $(CPPFLAGS) -c export_rgeom.cpp -o export_rgeom_cli.o
+
+utils_cli.o: utils.c
+	$(CC) $(CFLAGS) -c utils.c -o utils_cli.o
+
+geombuf_cli.o: geombuf.c
+	$(CC) $(CFLAGS) -c geombuf.c -o geombuf_cli.o
+
+nvtristrip_cli.o: nvtristrip/src/NvTriStrip/NvTriStrip.cpp
+	$(CPP) $(CPPFLAGS) -c nvtristrip/src/NvTriStrip/NvTriStrip.cpp -o nvtristrip_cli.o
+
+nvtristrip_objects_cli.o: nvtristrip/src/NvTriStrip/NvTriStripObjects.cpp
+	$(CPP) $(CPPFLAGS) -c nvtristrip/src/NvTriStrip/NvTriStripObjects.cpp -o nvtristrip_objects_cli.o

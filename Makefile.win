@@ -1,0 +1,57 @@
+# Project: lw_plugin
+# Makefile created by Dev-C++ 5.11
+
+CPP      = g++.exe -D__DEBUG__
+CC       = gcc.exe -D__DEBUG__
+WINDRES  = windres.exe
+OBJ      = export.o dllmain.o utils.o crc32.o nvtristrip/src/NvTriStrip/NvTriStrip.o nvtristrip/src/NvTriStrip/NvTriStripObjects.o export_rgeom.o export_common.o rgeom_options.o geombuf.o
+LINKOBJ  = export.o dllmain.o utils.o crc32.o nvtristrip/src/NvTriStrip/NvTriStrip.o nvtristrip/src/NvTriStrip/NvTriStripObjects.o export_rgeom.o export_common.o rgeom_options.o geombuf.o
+LIBS     = -L"F:/Dev-Cpp/x86_64-4.9.4-release-win32-seh-rt_v5-rev0/lib" -L"F:/Dev-Cpp/x86_64-4.9.4-release-win32-seh-rt_v5-rev0/x86_64-w64-mingw32/lib" -static-libgcc -static-libstdc++ -lcomdlg32 -g3
+INCS     = -I"F:/Dev-Cpp/x86_64-4.9.4-release-win32-seh-rt_v5-rev0/include" -I"F:/Dev-Cpp/x86_64-4.9.4-release-win32-seh-rt_v5-rev0/x86_64-w64-mingw32/include" -I"F:/Dev-Cpp/x86_64-4.9.4-release-win32-seh-rt_v5-rev0/lib/gcc/x86_64-w64-mingw32/4.9.4/include" -I"lw/ver-8.0/include" -I"nvtristrip/include"
+CXXINCS  = -I"F:/Dev-Cpp/x86_64-4.9.4-release-win32-seh-rt_v5-rev0/include" -I"F:/Dev-Cpp/x86_64-4.9.4-release-win32-seh-rt_v5-rev0/x86_64-w64-mingw32/include" -I"F:/Dev-Cpp/x86_64-4.9.4-release-win32-seh-rt_v5-rev0/lib/gcc/x86_64-w64-mingw32/4.9.4/include" -I"lw/ver-8.0/include" -I"nvtristrip/include"
+BIN      = lw_plugin.p
+CXXFLAGS = $(CXXINCS) -g3 -DBUILDING_DLL=1
+CFLAGS   = $(INCS) -g3 -DBUILDING_DLL=1
+RM       = rm.exe -f
+DEF      = liblw_plugin.def
+STATIC   = liblw_plugin.a
+
+.PHONY: all all-before all-after clean clean-custom
+
+all: all-before $(BIN) all-after
+
+clean: clean-custom
+	${RM} $(OBJ) $(BIN) $(DEF) $(STATIC)
+
+$(BIN): $(LINKOBJ)
+	$(CPP) -shared $(LINKOBJ) -o $(BIN) $(LIBS) -Wl,--output-def,$(DEF),--out-implib,$(STATIC),--add-stdcall-alias
+
+export.o: export.c
+	$(CC) -c export.c -o export.o $(CFLAGS)
+
+dllmain.o: dllmain.c
+	$(CC) -c dllmain.c -o dllmain.o $(CFLAGS)
+
+utils.o: utils.c
+	$(CC) -c utils.c -o utils.o $(CFLAGS)
+
+crc32.o: crc32.c
+	$(CC) -c crc32.c -o crc32.o $(CFLAGS)
+
+nvtristrip/src/NvTriStrip/NvTriStrip.o: nvtristrip/src/NvTriStrip/NvTriStrip.cpp
+	$(CPP) -c nvtristrip/src/NvTriStrip/NvTriStrip.cpp -o nvtristrip/src/NvTriStrip/NvTriStrip.o $(CXXFLAGS)
+
+nvtristrip/src/NvTriStrip/NvTriStripObjects.o: nvtristrip/src/NvTriStrip/NvTriStripObjects.cpp
+	$(CPP) -c nvtristrip/src/NvTriStrip/NvTriStripObjects.cpp -o nvtristrip/src/NvTriStrip/NvTriStripObjects.o $(CXXFLAGS)
+
+export_rgeom.o: export_rgeom.cpp
+	$(CPP) -c export_rgeom.cpp -o export_rgeom.o $(CXXFLAGS)
+
+export_common.o: export_common.c
+	$(CC) -c export_common.c -o export_common.o $(CFLAGS)
+
+rgeom_options.o: rgeom_options.c
+	$(CC) -c rgeom_options.c -o rgeom_options.o $(CFLAGS)
+
+geombuf.o: geombuf.c
+	$(CC) -c geombuf.c -o geombuf.o $(CFLAGS)
