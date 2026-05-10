@@ -13,6 +13,8 @@
 // meters to centimeters scale
 const float M2CM = 1.f;
 
+#if 0
+
 void RGeom_SaveToFILE(struct RGeom *rgeom, FILE *f)
 {
 	int i;
@@ -149,6 +151,8 @@ void RCollision_SaveToFILE(struct RCollision *c, FILE *f)
 	fwrite(&c->unknown7_count2, 1, sizeof(c->unknown7_count2), f);
 	fwrite(c->unknown7, 1, c->unknown7_count * sizeof(short), f);
 }
+
+#endif
 
 int add_point(float (*array)[3], int *count, float point[3])
 {
@@ -333,11 +337,11 @@ struct MYVERTEX2
 	float u2, v2;
 };
 
-C_API int export_rgeom(const char *filename, struct st_RGeomMtlList *mlist, unsigned nparts, struct st_RGeomPart *parts, struct st_RawModel *rawmodel, struct RCollision *collision)
+C_API int export_rgeom(const char *filename, struct st_RGeomMtlList *mlist, unsigned nparts, struct st_RGeomPart *parts, struct st_RawModel *rawmodel, struct RCollision *collision, int gamecube)
 {
 	struct RGeom rgeom;
 	struct RGeom_Name rname;
-	struct RGeom_UnknownThingy3 unk3;
+	struct RGeom_Joint joint;
 	
 	short temp1[1] = { 0 };
 	
@@ -345,16 +349,19 @@ C_API int export_rgeom(const char *filename, struct st_RGeomMtlList *mlist, unsi
 	
 	int use_strips = 1;
 	
+	rgeom.big_endian = gamecube;
 	rgeom.version = RGEOM_VERSION;
-	rgeom.unknown1 = 0;
+	rgeom.kind = RGEOM_KIND_RIGID;
 	rgeom.names_count = 1;
 	rgeom.visuals_count = nparts;
 	rgeom.vertexbuffers_count = nparts*2;
 	rgeom.indexbuffers_count = nparts;
 	rgeom.materials_count = mlist->count;
 	rgeom.unknownthingy2_count = 0;
-	rgeom.unknownthingy3_count = 1;
-	rgeom.unknownthingy4_count = 0;
+	rgeom.unknownthingy2 = NULL;
+	rgeom.joints_count = 1;
+	rgeom.remap_count = 0;
+	rgeom.remaps = NULL;
 	
 	vcopy(&rgeom.bbox[0], rawmodel->points[0]);
 	vcopy(&rgeom.bbox[3], rawmodel->points[0]);
@@ -395,7 +402,8 @@ C_API int export_rgeom(const char *filename, struct st_RGeomMtlList *mlist, unsi
 		struct RGeom_VertexBuffer *vb;
 		unsigned *verts_colors;
 		
-		int two_textures = 0;
+		int two_textures =
+			(strncmp(mlist->materials[parts[i].material_id].name, "2T", 2) == 0);
 		
 		/* vertices */
 		vb = &rgeom.vertexbuffers[i*2+0];
@@ -500,13 +508,13 @@ C_API int export_rgeom(const char *filename, struct st_RGeomMtlList *mlist, unsi
 		ib->vertex_count = parts[i].geom.verts_count;
 		ib->start_index = 0;
 		ib->unknown3 = 0;
-		ib->unknown4 = 16;
+		ib->unknown4 = 0;
 		ib->index_count = use_strips ? prim[0].numIndices : parts[i].geom.indices_count;
 		ib->data_size = ib->index_count * sizeof(short);
 		ib->index_stride = 2;
 		ib->vb_id = i*2;
-		ib->unknown5 = 0;
-		ib->unknown6 = 0;
+		ib->remap_count = 0;
+		ib->remap_start = 0;
 		
 		/* free resources */
 		if(use_strips) {
@@ -568,22 +576,22 @@ C_API int export_rgeom(const char *filename, struct st_RGeomMtlList *mlist, unsi
 			strcpy(material->data.material_name, mlist->materials[i].name);
 	}
 	
-	/* unknown thingy */
-	rgeom.unknownthingy3 = &unk3;
-	unk3.parent_id = 0xFFFFFFFF;
-	unk3.num_childs = 0;
-	vset3(unk3.s, 1.f, 1.f, 1.f);
-	vset4(unk3.q, 0.f, 0.f, 0.f, -1.f);
-	vset3(unk3.t, 0.f, 0.f, 0.f);
-	
+	/* joints */
+	rgeom.joints = &joint;
+	joint.parent_id = 0xFFFFFFFF;
+	joint.num_childs = 0;
+	vset3(joint.s, 1.f, 1.f, 1.f);
+	vset4(joint.q, 0.f, 0.f, 0.f, -1.f);
+	vset3(joint.t, 0.f, 0.f, 0.f);
+
 	FILE *f = fopen(filename, "wb");
 	if(!f) {
 		return 1;
 	}
 	
-	RGeom_SaveToFILE(&rgeom, f);
+	RGeom_SaveToFILE(&rgeom, f, gamecube);
 	if(collision)
-		RCollision_SaveToFILE(collision, f);
+		RCollision_SaveToFILE(collision, f, gamecube);
 	
 	fclose(f);
 	

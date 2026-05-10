@@ -4,13 +4,19 @@
 #include <lwsdk\lwsurf.h>
 #include <lwsdk\lwmodeler.h>
 
-int run_rgeom_export_options(GlobalFunc *global, int *collision, char *coll_surface)
+int run_rgeom_export_options(GlobalFunc *global, int *collision, char *coll_surface, int *platform)
 {
 	LWPanelFuncs *panf = global(LWPANELFUNCS_GLOBAL, GFUSE_TRANSIENT);
 	LWSurfaceFuncs *surff = global(LWSURFACEFUNCS_GLOBAL, GFUSE_TRANSIENT);
 	LWStateQueryFuncs *statefunc = global(LWSTATEQUERYFUNCS_GLOBAL, GFUSE_TRANSIENT);
+
+	static const char *platform_choices[] = {
+		"PC or XBox",
+		"Gamecube",
+		NULL
+	};
 	
-	static const char *choices[] = {
+	static const char *coll_choices[] = {
 		"None",
 		"By Render Surfaces",
 		"By Surface:",
@@ -20,6 +26,7 @@ int run_rgeom_export_options(GlobalFunc *global, int *collision, char *coll_surf
 	LWPanelID panel;
 	int result;
 	
+	LWControl *ctl_platform_choice;
 	LWControl *ctl_coll_choice;
 	LWControl *ctl_coll_surface;
 	
@@ -49,15 +56,18 @@ int run_rgeom_export_options(GlobalFunc *global, int *collision, char *coll_surf
 	
 	/* create panel */
 	panel = PAN_CREATE(panf, "Export RGeom");
-	ctl_coll_choice = VCHOICE_CTL(panf, panel, "Collision:", choices);
+	ctl_platform_choice = VCHOICE_CTL(panf, panel, "Platform:", platform_choices);
+	ctl_coll_choice = VCHOICE_CTL(panf, panel, "Collision:", coll_choices);
 	ctl_coll_surface = POPUP_CTL(panf, panel, "", surface_list); 
 	
+	SET_INT(ctl_platform_choice, 0);
 	SET_INT(ctl_coll_choice, 1);
 	SET_INT(ctl_coll_surface, def);
 	
 	result = PAN_POST(panf, panel);
 	
 	if(result) {
+		GET_INT(ctl_platform_choice, *platform);
 		GET_INT(ctl_coll_choice, *collision);
 		GET_INT(ctl_coll_surface, i);
 		strcpy(coll_surface, surface_list[i]);

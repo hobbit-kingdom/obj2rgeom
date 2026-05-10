@@ -1,10 +1,6 @@
 #ifndef __GEOMBUF_H__
 #define __GEOMBUF_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #define ERROR_NOMEM          -1
 #define ERROR_BUFFERISFULL   -2
 
@@ -27,10 +23,6 @@ void GeomBuf_Destroy(struct st_GeomBuf *buf);
 int GeomBuf_FindVert(struct st_GeomBuf *buf, void *vert);
 int GeomBuf_AddVert(struct st_GeomBuf *buf, void *vert);
 int GeomBuf_AddTri(struct st_GeomBuf *buf, void *v1, void *v2, void *v3);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif
 

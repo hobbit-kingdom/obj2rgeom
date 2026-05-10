@@ -748,7 +748,8 @@ int main(int argc, char **argv)
 		static_cast<unsigned>(parts.size()),
 		parts.data(),
 		&raw_model,
-		&collision);
+		&collision,
+		0);
 
 	free_packed_parts(parts);
 	free_collision(&collision);

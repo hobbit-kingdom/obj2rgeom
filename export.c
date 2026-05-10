@@ -540,6 +540,16 @@ int extract_LWLayer(struct st_RawModel *dest, LWMeshInfoID layer)
 		}
 	}
 	
+	/* mirror Z and flip triangles */
+	for(i = 0; i < dest->points_count; i++)
+		dest->points[i][2] *= -1.f;
+		
+	for(i = 0; i < dest->tris_count; i++) {
+		struct st_RawVertex tmp = dest->tris[i].v[2];
+		dest->tris[i].v[2] = dest->tris[i].v[0];
+		dest->tris[i].v[0] = tmp;
+	}
+	
 	/* free resources */
 	free(lw_points);
 	free(lw_polygons);
@@ -635,39 +645,19 @@ int extract_LWSurfaces(struct st_RGeomMtlList *mlist, struct st_RawModel *model,
 	return 0;
 }
 
-#if 0
-int test_ExportModel(long version, GlobalFunc *global, LWModCommand *local, void *serverdata)
+int find_current_object(LWStateQueryFuncs *statefunc, LWObjectFuncs *objfunc, LWMessageFuncs *msgfunc, char **_objname, int *_objid)
 {
-	LWStateQueryFuncs *statefunc;
-	LWObjectFuncs *objfunc;
-	LWMessageFuncs *msgfunc;
+	int i;
 	
-	const char *objname;
-	int objid;
+	if(statefunc->object() == NULL) {
+		msgfunc->error("statefunc->object() == NULL", NULL);
+		return 0;
+	}
 	
-	int have_uvs;
-	
-	char filename[256] = "";
-	FILE *out;
-	
-	int i, j;
-	
-	struct st_RawModel rawmodel;
-	struct st_PackedModel pmodel;
-
-	if(version != LWMODCOMMAND_VERSION)
-		return AFUNC_BADVERSION;
-		
-	statefunc = global(LWSTATEQUERYFUNCS_GLOBAL, GFUSE_TRANSIENT);
-	objfunc = global(LWOBJECTFUNCS_GLOBAL, GFUSE_TRANSIENT);
-	msgfunc = global(LWMESSAGEFUNCS_GLOBAL, GFUSE_TRANSIENT);
-	
-	/* retrieve name of current object */
-	objname = statefunc->object();
-	
-	if(objname == NULL) {
-		msgfunc->error("objname == NULL", NULL);
-		return AFUNC_OK;
+	/* Strange but in LW2015 object name gets overriden later somehow, so I have to strdup it */
+	*_objname = strdup(statefunc->object());
+	if(!*_objname) {
+		return 0;
 	}
 		
 	for(i = 0; i < objfunc->numObjects(); i++) {
@@ -679,11 +669,48 @@ int test_ExportModel(long version, GlobalFunc *global, LWModCommand *local, void
 		if(filename == NULL)
 			msgfunc->error("filename == NULL", NULL);
 		
-		if(filename && strcmp(objname, filename) == 0) {
-			objid = i;
-			break;
+		if(filename && strcmp(*_objname, filename) == 0) {
+			*_objid = i;
+			return 1;
 		}
 	}
+	
+	free(*_objname);
+	return 0;
+}
+
+#if 1
+int test_ExportModel(long version, GlobalFunc *global, LWModCommand *local, void *serverdata)
+{
+	LWStateQueryFuncs *statefunc;
+	LWObjectFuncs *objfunc;
+	LWMessageFuncs *msgfunc;
+	
+	char *objname;
+	int objid;
+	
+	int have_uvs;
+	
+	char filename[256] = "";
+	FILE *out;
+	
+	int i, j;
+	
+	struct st_RawModel rawmodel;
+	struct st_PackedModel pmodel;
+	
+	struct st_RGeomMtlList mlist = { 0 };
+
+	if(version != LWMODCOMMAND_VERSION)
+		return AFUNC_BADVERSION;
+		
+	statefunc = global(LWSTATEQUERYFUNCS_GLOBAL, GFUSE_TRANSIENT);
+	objfunc = global(LWOBJECTFUNCS_GLOBAL, GFUSE_TRANSIENT);
+	msgfunc = global(LWMESSAGEFUNCS_GLOBAL, GFUSE_TRANSIENT);
+	
+	/* retrieve name of current object */
+	if(!find_current_object(statefunc, objfunc, msgfunc, &objname, &objid))
+		return AFUNC_OK;
 	
 	/* select filename for export */
 	if(!SelectFileBin(filename, sizeof(filename)))
@@ -700,9 +727,11 @@ int test_ExportModel(long version, GlobalFunc *global, LWModCommand *local, void
 		
 		/* extract the model */
 		extract_LWLayer(&rawmodel, layer);
+		if(extract_LWSurfaces(&mlist, &rawmodel, objname, global) != 0)
+			msgfunc->error("Out of memory! (extract_LWSurfaces)", NULL);
 		
 		/* calculate vertex normals */
-		calculate_normals(&rawmodel, M_PI/4);
+		calculate_normals(&rawmodel, &mlist);
 		
 #if 0
 		/* write all that shit into the file */
@@ -729,6 +758,29 @@ int test_ExportModel(long version, GlobalFunc *global, LWModCommand *local, void
 		/* write all that shit into the file */
 		out = fopen(filename, "wb");
 		if(out) {
+			float bbox_min[3];
+			float bbox_max[3];
+			
+			/* calculate bbox */
+			vcopy(bbox_min, rawmodel.points[0]);
+			vcopy(bbox_max, rawmodel.points[0]);
+			for(i = 1; i < rawmodel.points_count; i++) {
+				vmin(bbox_min, rawmodel.points[i]);
+				vmax(bbox_max, rawmodel.points[i]);
+			}
+		
+			/* write marker */
+			i = -1;
+			fwrite(&i, 1, sizeof(i), out);
+			
+			/* write version */
+			fwrite("V0.0", 1, 4, out);
+			
+			/* write bbox */
+			fwrite(bbox_min, 1, sizeof(bbox_min), out);
+			fwrite(bbox_max, 1, sizeof(bbox_max), out);
+		
+			/* write verts */
 			i = pmodel.verts_count;
 			fwrite(&i, 1, sizeof(i), out);
 			
@@ -779,6 +831,15 @@ int test_ExportModel(long version, GlobalFunc *global, LWModCommand *local, void
 		if(layer->destroy)
 			layer->destroy(layer);
 	}
+	
+	/* free resources */
+	for(i = 0; i < mlist.count; i++) {
+		free(mlist.materials[i].name);
+		free(mlist.materials[i].texture);
+	}
+	free(mlist.materials);
+	
+	free(objname);
 		
 	return AFUNC_OK;
 }
@@ -810,6 +871,7 @@ int test_ExportRGeom(long version, GlobalFunc *global, LWModCommand *local, void
 
 	
 	/* options */
+	int opt_platform = PLATFORM_PCorXBOX;
 	int opt_collision = COLL_BYRENDERSURFACES;
 	char collision_surface[256];
 	
@@ -847,31 +909,11 @@ int test_ExportRGeom(long version, GlobalFunc *global, LWModCommand *local, void
 	msgfunc = global(LWMESSAGEFUNCS_GLOBAL, GFUSE_TRANSIENT);
 	
 	/* retrieve name of current object */
-	if(statefunc->object() == NULL) {
-		msgfunc->error("statefunc->object() == NULL", NULL);
+	if(!find_current_object(statefunc, objfunc, msgfunc, &objname, &objid))
 		return AFUNC_OK;
-	}
-	
-	/* Strange but in LW2015 object name gets overriden later somehow, so I have to strdup it */
-	objname = strdup(statefunc->object());
-		
-	for(i = 0; i < objfunc->numObjects(); i++) {
-		const char *filename = objfunc->filename(i);
-		
-		if(filename == NULL)
-			filename = objfunc->refName(i);
-			
-		if(filename == NULL)
-			msgfunc->error("filename == NULL", NULL);
-		
-		if(filename && strcmp(objname, filename) == 0) {
-			objid = i;
-			break;
-		}
-	}
 	
 	/* run options dialog */
-	if(!run_rgeom_export_options(global, &opt_collision, collision_surface)) {
+	if(!run_rgeom_export_options(global, &opt_collision, collision_surface, &opt_platform)) {
 		free(objname);
 		return AFUNC_OK;
 	}
@@ -1074,7 +1116,7 @@ int test_ExportRGeom(long version, GlobalFunc *global, LWModCommand *local, void
 #endif
 	
 	t_start = clock();
-	export_rgeom(filename, &mlist, nparts, parts, &rawmodel, rcollision_ptr);
+	export_rgeom(filename, &mlist, nparts, parts, &rawmodel, rcollision_ptr, opt_platform == PLATFORM_GAMECUBE);
 	t_end = clock();
 	
 	if(f_log) fprintf(f_log, "export_rgeom took %u clocks\n", t_end-t_start);
@@ -1107,7 +1149,7 @@ int test_ExportRGeom(long version, GlobalFunc *global, LWModCommand *local, void
 }
 
 ServerRecord _server_desc[] = {
-//	{ LWMODCOMMAND_CLASS, "Test_ExportModel", test_ExportModel },
+	{ LWMODCOMMAND_CLASS, "Test_ExportModel", test_ExportModel },
 	{ LWMODCOMMAND_CLASS, "Test_ExportRGeom", test_ExportRGeom },
 	{ NULL }
 };

@@ -1,0 +1,43 @@
+CPP      = g++.exe
+CC       = gcc.exe
+CPPFLAGS = -std=gnu++17 -O2 -I. -Invtristrip/include
+CFLAGS   = -std=gnu11 -O2 -I.
+BIN      = fbx2rgeom.exe
+OBJ      = fbx2rgeom.o export_rgeom_cli.o utils_cli.o geombuf_cli.o gcn_normals_cli.o rgeom_save_cli.o ufbx_cli.o nvtristrip_cli.o nvtristrip_objects_cli.o
+
+.PHONY: all clean
+
+all: $(BIN)
+
+clean:
+	del /q $(OBJ) $(BIN) 2>nul || exit 0
+
+$(BIN): $(OBJ)
+	$(CPP) $(OBJ) -o $(BIN) -static-libgcc -static-libstdc++ -lcomdlg32
+
+fbx2rgeom.o: fbx2rgeom.cpp ufbx.h
+	$(CPP) $(CPPFLAGS) -c fbx2rgeom.cpp -o fbx2rgeom.o
+
+export_rgeom_cli.o: export_rgeom.cpp
+	$(CPP) $(CPPFLAGS) -c export_rgeom.cpp -o export_rgeom_cli.o
+
+utils_cli.o: utils.c
+	$(CC) $(CFLAGS) -c utils.c -o utils_cli.o
+
+geombuf_cli.o: geombuf.c
+	$(CC) $(CFLAGS) -c geombuf.c -o geombuf_cli.o
+
+gcn_normals_cli.o: gcn_normals.c
+	$(CC) $(CFLAGS) -c gcn_normals.c -o gcn_normals_cli.o
+
+rgeom_save_cli.o: rgeom_save.c
+	$(CC) $(CFLAGS) -c rgeom_save.c -o rgeom_save_cli.o
+
+ufbx_cli.o: ufbx.c ufbx.h
+	$(CC) $(CFLAGS) -c ufbx.c -o ufbx_cli.o
+
+nvtristrip_cli.o: nvtristrip/src/NvTriStrip/NvTriStrip.cpp
+	$(CPP) $(CPPFLAGS) -c nvtristrip/src/NvTriStrip/NvTriStrip.cpp -o nvtristrip_cli.o
+
+nvtristrip_objects_cli.o: nvtristrip/src/NvTriStrip/NvTriStripObjects.cpp
+	$(CPP) $(CPPFLAGS) -c nvtristrip/src/NvTriStrip/NvTriStripObjects.cpp -o nvtristrip_objects_cli.o

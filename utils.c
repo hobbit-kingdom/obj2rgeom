@@ -1,5 +1,4 @@
 #include <windows.h>
-#include <string.h>
 #include "utils.h"
 
 BOOL SelectFileBin(char *filename, size_t buflen)

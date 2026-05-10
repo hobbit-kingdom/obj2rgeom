@@ -67,7 +67,7 @@ struct RCollision;
 C_API int create_collision(struct RCollision *c, struct st_RawModel *model);
 C_API void free_collision(struct RCollision *c);
 
-C_API int export_rgeom(const char *filename, struct st_RGeomMtlList *mlist, unsigned nparts, struct st_RGeomPart *parts, struct st_RawModel *rawmodel, struct RCollision *collision);
+C_API int export_rgeom(const char *filename, struct st_RGeomMtlList *mlist, unsigned nparts, struct st_RGeomPart *parts, struct st_RawModel *rawmodel, struct RCollision *collision, int gamecube);
 
 #endif
 
